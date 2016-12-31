@@ -1,4 +1,5 @@
 var cacheName = 'weatherPWA-step-6-1';
+var dataCacheName = 'weatherData-v1';
 var filesToCache = [
   '/',
   '/index.html',
@@ -39,7 +40,7 @@ self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keyList) {
       return Promise.all(keyList.map(function(key) {
-        if (key !== cacheName) {
+        if (key !== cacheName && key !== dataCacheName) {
           console.log('[ServiceWorker] Removing old cache', key);
           return caches.delete(key);
         }
@@ -51,12 +52,26 @@ self.addEventListener('activate', function(e) {
 
 self.addEventListener('fetch', function(e) {
   console.log('[ServiceWorker] Fetch', e.request.url);
-  e.respondWith( // pass response back to webpage
-    caches.match(e.request).then(function(response) {
-      return response || fetch(e.request);
-        // if the web request is available in cache, return it
-        // otherwise fetch copy from network
-        // then
-    })
-  );
+  var dataUrl = 'https://query.yahooapis.com/v1/public/yql';
+  if (e.request.url.indexOf(dataUrl) > -1) {
+    // refreshing weather data: get it from network, cache it
+    e.respondWith(
+      caches.open(dataCacheName).then(function(cache) {
+        return fetch(e.request).then(function(response){ // fetch data
+          cache.put(e.request.url, response.clone()); // cache clone of data
+          return response;
+        });
+      })
+    );
+  } else {
+    // get app shell files
+    e.respondWith( // pass response back to webpage
+      caches.match(e.request).then(function(response) {
+        return response || fetch(e.request);
+          // if the web request is available in cache, return it
+          // otherwise fetch copy from network
+          // then
+      })
+    );
+  }
 });
