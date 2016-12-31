@@ -48,3 +48,15 @@ self.addEventListener('activate', function(e) {
   );
   return self.clients.claim();
 });
+
+self.addEventListener('fetch', function(e) {
+  console.log('[ServiceWorker] Fetch', e.request.url);
+  e.respondWith( // pass response back to webpage
+    caches.match(e.request).then(function(response) {
+      return response || fetch(e.request);
+        // if the web request is available in cache, return it
+        // otherwise fetch copy from network
+        // then
+    })
+  );
+});
